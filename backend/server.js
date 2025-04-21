@@ -1,54 +1,28 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-const dotenv = require("dotenv");
-
-dotenv.config();
+import express from 'express';
+import cors from 'cors';
+import bodyParser from 'body-parser';
+import multer from 'multer';
+import blogRoutes from './src/routes/blogRoutes.js';
+import { connectDB } from './src/config/db.js';  // Import the connectDB function
 
 const app = express();
+const port = process.env.PORT ||5000;
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(bodyParser.json()); // For parsing application/json
+app.use(bodyParser.urlencoded({ extended: true })); // For parsing application/x-www-form-urlencoded
 
-// MongoDB Connect
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.error("MongoDB connection error:", err));
+connectDB();
+// Set up multer for file uploads (in-memory storage)
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 // Routes
-app.use("/api/posts", require("./routes/posts"));  // Ensure correct route
+app.use('/api/posts', blogRoutes);
 
-// Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+// app.use('/api/posts', upload.single('file'), blogRoutes);  // Here multer middleware is applied to the /api/posts route
 
-// DELETE Route (to delete a blog)
-app.delete("/api/blogs/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    await Post.findByIdAndDelete(id);
-    res.status(200).json({ message: "Blog deleted successfully" });
-  } catch (err) {
-    res.status(500).json({ message: "Error deleting blog" });
-  }
-});
-
-// PUT Route (to update a blog)
-app.put("/api/blogs/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { title, content } = req.body;
-    const updatedBlog = await Post.findByIdAndUpdate(
-      id,
-      { title, content },
-      { new: true }
-    );
-    res.status(200).json(updatedBlog);
-  } catch (err) {
-    res.status(500).json({ message: "Error updating blog" });
-  }
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
